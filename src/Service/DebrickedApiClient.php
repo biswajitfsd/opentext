@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use Symfony\Component\Mime\Part\DataPart;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
@@ -52,32 +53,63 @@ class DebrickedApiClient
             $this->authenticate();
         }
 
-        $file = new UploadedFile($filePath, basename($filePath));
+        // Ensure the file exists
+        if (!file_exists($filePath)) {
+            throw new \RuntimeException('File does not exist: ' . $filePath);
+        }
 
-        $response = $this->httpClient->request('POST', $this->baseUrl . '/1.0/open/uploads/dependencies/files', [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $this->token,
-                'Accept' => '*/*',
-                'Content-Type' => 'multipart/form-data',
-            ],
-            'body' => [
+        $curl = curl_init();
+
+        // Create a CURLFile instance
+        $fileData = new \CURLFile($filePath);
+
+        // Debug the CURLFile object
+        // dd($fileData);
+
+        curl_setopt_array($curl, [
+            CURLOPT_URL => $this->baseUrl . '/1.0/open/uploads/dependencies/files',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_POSTFIELDS => [
                 'commitName' => 'Initial commit',
-                'ciUploadId' => '',
-                'repositoryUrl' => 'https://github.com/' . $this->repositoryName,
-                'fileData' => fopen($filePath, 'r'),
-                'fileRelativePath' => $file->getClientOriginalName(),
-                'branchName' => 'main',
-                'defaultBranchName' => 'main',
+                'repositoryUrl' => '',
+                'fileData' => $fileData, // Use the variable here
+                'fileRelativePath' => '',
+                'branchName' => '',
+                'defaultBranchName' => '',
                 'releaseName' => '',
-                'repositoryName' => $this->repositoryName,
+                'repositoryName' => $this->repositoryName, // Use the instance variable
                 'productName' => '',
             ],
+            CURLOPT_HTTPHEADER => [
+                'accept: */*',
+                'Authorization: Bearer ' . $this->token,
+                // Add any other headers you need
+            ],
+            CURLOPT_VERBOSE => true, // Enable verbose output
         ]);
 
-        $data = $response->toArray();
+        $response = curl_exec($curl);
+
+        if (curl_errno($curl)) {
+            $error_msg = curl_error($curl);
+            curl_close($curl);
+            throw new \RuntimeException('cURL error: ' . $error_msg);
+        }
+
+        curl_close($curl);
+
+        $data = json_decode($response, true);
+        
         if (!isset($data['uploadId'])) {
             throw new \RuntimeException('Failed to get uploadId from Debricked API');
         }
+
         return $data['uploadId'];
     }
 

@@ -27,7 +27,7 @@ class UploadController extends AbstractController
         $safeFilename = $this->slugify($originalFilename);
         $mimeTypes = new MimeTypes();
         $extension = $mimeTypes->getExtensions($uploadedFile->getMimeType())[0] ?? $uploadedFile->getClientOriginalExtension();
-        $newFilename = $safeFilename.'-'.uniqid().'.'.$extension;
+        $newFilename = $safeFilename.'.'.$extension;
 
         try {
             $uploadedFile->move(
