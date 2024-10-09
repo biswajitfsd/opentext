@@ -9,6 +9,7 @@ use App\Service\RuleEngine;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\Handler\MessageHandlerInterface;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
 
 class ProcessUploadMessageHandler implements MessageHandlerInterface
 {
@@ -32,24 +33,51 @@ class ProcessUploadMessageHandler implements MessageHandlerInterface
     public function __invoke(ProcessUploadMessage $message)
     {
         $upload = $this->entityManager->getRepository(Upload::class)->find($message->getUploadId());
-        $filePath = $this->params->get('uploads_directory') . '/' . $upload->getFileName();
 
-        $debrickedUploadId = $this->debrickedApiClient->uploadFile($filePath);
-        $this->debrickedApiClient->startScan($debrickedUploadId);
-
-        $upload->setStatus('scanning');
-        $this->entityManager->flush();
-
-        while (!$this->debrickedApiClient->isScanComplete($debrickedUploadId)) {
-            sleep(10);
+        if (!$upload) {
+            throw new UnrecoverableMessageHandlingException('Upload not found for ID: ' . $message->getUploadId());
         }
 
-        $scanResults = $this->debrickedApiClient->getScanResults($debrickedUploadId);
+        $fileName = $upload->getFileName();
 
-        $upload->setStatus('completed');
-        $upload->setVulnerabilityCount($scanResults['vulnerabilityCount']);
-        $this->entityManager->flush();
+        if ($fileName === null) {
+            throw new UnrecoverableMessageHandlingException('Filename is null for Upload ID: ' . $message->getUploadId());
+        }
 
-        $this->ruleEngine->evaluate($upload);
+        $uploadsDirectory = $this->params->get('uploads_directory');
+
+        if ($uploadsDirectory === null) {
+            throw new UnrecoverableMessageHandlingException('Uploads directory parameter is not set');
+        }
+
+        $filePath = $uploadsDirectory . '/' . $fileName;
+
+        if (!file_exists($filePath)) {
+            throw new UnrecoverableMessageHandlingException('File not found: ' . $filePath);
+        }
+
+        try {
+            $debrickedUploadId = $this->debrickedApiClient->uploadFile($filePath);
+            $this->debrickedApiClient->startScan($debrickedUploadId);
+
+            $upload->setStatus('scanning');
+            $this->entityManager->flush();
+
+            while (!$this->debrickedApiClient->isScanComplete($debrickedUploadId)) {
+                sleep(10);
+            }
+
+            $scanResults = $this->debrickedApiClient->getScanResults($debrickedUploadId);
+
+            $upload->setStatus('completed');
+            $upload->setVulnerabilityCount($scanResults['vulnerabilityCount'] ?? 0);
+            $this->entityManager->flush();
+
+            $this->ruleEngine->evaluate($upload);
+        } catch (\Exception $e) {
+            $upload->setStatus('failed');
+            $this->entityManager->flush();
+            throw new UnrecoverableMessageHandlingException('Error processing upload: ' . $e->getMessage(), 0, $e);
+        }
     }
 }

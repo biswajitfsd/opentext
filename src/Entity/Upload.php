@@ -22,11 +22,13 @@ class Upload
     #[ORM\Column(nullable: true)]
     private ?int $vulnerabilityCount = null;
 
+    // Getter method for $id
     public function getId(): ?int
     {
         return $this->id;
     }
 
+    // Getter and setter methods for $fileName
     public function getFileName(): ?string
     {
         return $this->fileName;
@@ -35,9 +37,11 @@ class Upload
     public function setFileName(string $fileName): self
     {
         $this->fileName = $fileName;
+
         return $this;
     }
 
+    // Getter and setter methods for $status
     public function getStatus(): ?string
     {
         return $this->status;
@@ -46,17 +50,10 @@ class Upload
     public function setStatus(string $status): self
     {
         $this->status = $status;
+
         return $this;
     }
 
-    public function getVulnerabilityCount(): ?int
-    {
-        return $this->vulnerabilityCount;
-    }
-
-    public function setVulnerabilityCount(?int $vulnerabilityCount): self
-    {
-        $this->vulnerabilityCount = $vulnerabilityCount;
-        return $this;
-    }
+    // Getter and setter methods for other properties
+    // ...
 }

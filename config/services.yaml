@@ -25,7 +25,9 @@ services:
     # please note that last definitions always *replace* previous ones
     App\Service\DebrickedApiClient:
         arguments:
-            $apiToken: '%env(DEBRICKED_API_TOKEN)%'
+            $username: '%env(DEBRICKED_USERNAME)%'
+            $password: '%env(DEBRICKED_PASSWORD)%'
+            $repositoryName: '%env(DEBRICKED_REPOSITORY)%'
 
     App\Service\RuleEngine:
         arguments:

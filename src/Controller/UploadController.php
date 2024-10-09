@@ -10,6 +10,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Mime\MimeTypes;
 
 class UploadController extends AbstractController
 {
@@ -23,7 +24,10 @@ class UploadController extends AbstractController
         }
 
         $originalFilename = pathinfo($uploadedFile->getClientOriginalName(), PATHINFO_FILENAME);
-        $newFilename = $originalFilename.'-'.uniqid().'.'.$uploadedFile->guessExtension();
+        $safeFilename = $this->slugify($originalFilename);
+        $mimeTypes = new MimeTypes();
+        $extension = $mimeTypes->getExtensions($uploadedFile->getMimeType())[0] ?? $uploadedFile->getClientOriginalExtension();
+        $newFilename = $safeFilename.'-'.uniqid().'.'.$extension;
 
         try {
             $uploadedFile->move(
@@ -47,5 +51,29 @@ class UploadController extends AbstractController
             'message' => 'File uploaded successfully',
             'filename' => $newFilename
         ], Response::HTTP_CREATED);
+    }
+
+    public function slugify($text)
+    {
+        // Replace non letter or digits by -
+        $text = preg_replace('~[^\pL\d]+~u', '-', $text);
+
+        // Transliterate
+        $text = iconv('utf-8', 'us-ascii//TRANSLIT', $text);
+
+        // Remove unwanted characters
+        $text = preg_replace('~[^-\w]+~', '', $text);
+
+        // Trim
+        $text = trim($text, '-');
+
+        // Remove duplicate -
+        $text = preg_replace('~-+~', '-', $text);
+
+        // Lowercase
+        $text = strtolower($text);
+
+        // Return the slugified string
+        return $text;
     }
 }
