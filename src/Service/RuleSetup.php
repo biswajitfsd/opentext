@@ -17,7 +17,7 @@ class RuleSetup
     {
         $this->ruleEngine->addRule(
             function (Upload $upload) {
-                return $upload->getVulnerabilityCount() > 10;
+                return $upload->getVulnerabilityCount() > 1;
             },
             [$this->ruleEngine, 'notifyHighVulnerabilities']
         );

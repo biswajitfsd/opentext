@@ -3,18 +3,26 @@
 namespace App\Service;
 
 use App\Entity\Upload;
-use Symfony\Component\Notifier\Notification\Notification;
-use Symfony\Component\Notifier\NotifierInterface;
-use Symfony\Component\Notifier\Recipient\Recipient;
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\Email;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class RuleEngine
 {
-    private $notifier;
+    private $mailer;
+    private $httpClient;
+    private $slackWebhookUrl;
     private $rules = [];
 
-    public function __construct(NotifierInterface $notifier)
+    public function __construct(
+        MailerInterface     $mailer,
+        HttpClientInterface $httpClient,
+        string              $slackWebhookUrl
+    )
     {
-        $this->notifier = $notifier;
+        $this->mailer = $mailer;
+        $this->httpClient = $httpClient;
+        $this->slackWebhookUrl = $slackWebhookUrl;
         $this->setupRules();
     }
 
@@ -22,7 +30,7 @@ class RuleEngine
     {
         $this->addRule(
             function (Upload $upload) {
-                return $upload->getVulnerabilityCount() > 10;
+                return $upload->getVulnerabilityCount() > 1;
             },
             function (Upload $upload) {
                 $this->notifyHighVulnerabilities($upload);
@@ -64,34 +72,66 @@ class RuleEngine
 
     private function notifyHighVulnerabilities(Upload $upload): void
     {
-        $notification = (new Notification('High Vulnerability Alert', ['email', 'slack']))
-            ->content('Upload ' . $upload->getId() . ' has ' . $upload->getVulnerabilityCount() . ' vulnerabilities.')
-            ->importance(Notification::IMPORTANCE_HIGH);
+        $message = 'High Vulnerability Alert: Upload ' . $upload->getId() . ' has ' . $upload->getVulnerabilityCount() . ' vulnerabilities.';
 
-        $recipient = new Recipient('admin@example.com');
+        // Send Slack notification
+        $this->sendSlackNotification($message);
 
-        $this->notifier->send($notification, $recipient);
+        // Send email notification
+        $email = (new Email())
+            ->from('noreply@example.com')
+            ->to('biswajit1305@gmail.com')
+            ->subject('High Vulnerability Alert')
+            ->text($message);
+
+        $this->mailer->send($email);
     }
 
     private function notifyScanInProgress(Upload $upload): void
     {
-        $notification = (new Notification('Scan In Progress', ['slack']))
-            ->content('Scan for upload ' . $upload->getId() . ' is currently in progress.')
-            ->importance(Notification::IMPORTANCE_MEDIUM);
+        $message = 'Scan In Progress: Scan for upload ' . $upload->getId() . ' is currently in progress.';
 
-        $recipient = new Recipient('admin@example.com');
+        $this->sendSlackNotification($message);
 
-        $this->notifier->send($notification, $recipient);
+        // Send email notification
+        $email = (new Email())
+            ->from('noreply@example.com')
+            ->to('biswajit1305@gmail.com')
+            ->subject('Scan In Progress')
+            ->text($message);
+
+        $this->mailer->send($email);
     }
 
     private function notifyScanFailed(Upload $upload): void
     {
-        $notification = (new Notification('Scan Failed', ['email', 'slack']))
-            ->content('Scan for upload ' . $upload->getId() . ' has failed.')
-            ->importance(Notification::IMPORTANCE_HIGH);
+        $message = 'Scan Failed: Scan for upload ' . $upload->getId() . ' has failed.';
 
-        $recipient = new Recipient('admin@example.com');
+        $this->sendSlackNotification($message);
 
-        $this->notifier->send($notification, $recipient);
+        // Send email notification
+        $email = (new Email())
+            ->from('noreply@example.com')
+            ->to('biswajit1305@gmail.com')
+            ->subject('Scan Failed')
+            ->text($message);
+
+        $this->mailer->send($email);
+    }
+
+    private function sendSlackNotification(string $message): void
+    {
+        try {
+            $response = $this->httpClient->request('POST', $this->slackWebhookUrl, [
+                'json' => ['text' => $message]
+            ]);
+
+            if ($response->getStatusCode() !== 200) {
+                throw new \Exception('Slack API returned non-200 status code: ' . $response->getStatusCode());
+            }
+        } catch (\Exception $e) {
+            // Log the error or handle it appropriately
+            error_log('Failed to send Slack notification: ' . $e->getMessage());
+        }
     }
 }

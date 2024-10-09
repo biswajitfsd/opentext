@@ -31,4 +31,6 @@ services:
 
     App\Service\RuleEngine:
         arguments:
-            $notifier: '@notifier'
+            $mailer: '@mailer'
+            $httpClient: '@http_client'
+            $slackWebhookUrl: '%env(SLACK_DSN)%'
