@@ -21,7 +21,8 @@
         "symfony/notifier": "6.1.*",
         "symfony/runtime": "6.1.*",
         "symfony/slack-notifier": "6.1.*",
-        "symfony/yaml": "6.1.*"
+        "symfony/yaml": "6.1.*",
+      "ext-curl": "*"
     },
     "config": {
         "allow-plugins": {

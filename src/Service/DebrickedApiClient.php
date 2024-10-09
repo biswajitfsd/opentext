@@ -2,18 +2,16 @@
 
 namespace App\Service;
 
-use Symfony\Component\Mime\Part\DataPart;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
-use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 class DebrickedApiClient
 {
-    private $httpClient;
-    private $username;
-    private $password;
-    private $repositoryName;
-    private $baseUrl = 'https://debricked.com/api';
-    private $token;
+    private HttpClientInterface $httpClient;
+    private string $username;
+    private string $password;
+    private string $repositoryName;
+    private string $baseUrl = 'https://debricked.com/api';
+    private string $token;
 
     public function __construct(
         HttpClientInterface $httpClient,
