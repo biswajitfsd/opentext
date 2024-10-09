@@ -56,4 +56,15 @@ class Upload
 
     // Getter and setter methods for other properties
     // ...
+
+    public function setVulnerabilityCount(int $count): self
+    {
+        $this->vulnerabilityCount = $count;
+        return $this;
+    }
+
+    public function getVulnerabilityCount(): int
+    {
+        return $this->vulnerabilityCount;
+    }
 }

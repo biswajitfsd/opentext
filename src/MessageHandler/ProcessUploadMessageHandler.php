@@ -58,16 +58,16 @@ class ProcessUploadMessageHandler implements MessageHandlerInterface
 
         try {
             $debrickedUploadId = $this->debrickedApiClient->uploadFile($filePath);
-            $this->debrickedApiClient->startScan($debrickedUploadId);
+            list($repositoryId, $commitId) = $this->debrickedApiClient->startScan($debrickedUploadId);
 
             $upload->setStatus('scanning');
             $this->entityManager->flush();
 
             while (!$this->debrickedApiClient->isScanComplete($debrickedUploadId)) {
-                sleep(10);
+                sleep(3);
             }
 
-            $scanResults = $this->debrickedApiClient->getScanResults($debrickedUploadId);
+            $scanResults = $this->debrickedApiClient->getScanResults($repositoryId, $commitId);
 
             $upload->setStatus('completed');
             $upload->setVulnerabilityCount($scanResults['vulnerabilityCount'] ?? 0);
