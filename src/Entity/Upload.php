@@ -22,13 +22,20 @@ class Upload
     #[ORM\Column(nullable: true)]
     private ?int $vulnerabilityCount = null;
 
-    // Getter method for $id
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $debrickedUploadId = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $repositoryId = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $commitId = null;
+
     public function getId(): ?int
     {
         return $this->id;
     }
 
-    // Getter and setter methods for $fileName
     public function getFileName(): ?string
     {
         return $this->fileName;
@@ -37,11 +44,9 @@ class Upload
     public function setFileName(string $fileName): self
     {
         $this->fileName = $fileName;
-
         return $this;
     }
 
-    // Getter and setter methods for $status
     public function getStatus(): ?string
     {
         return $this->status;
@@ -50,21 +55,50 @@ class Upload
     public function setStatus(string $status): self
     {
         $this->status = $status;
-
         return $this;
     }
 
-    // Getter and setter methods for other properties
-    // ...
+    public function getVulnerabilityCount(): ?int
+    {
+        return $this->vulnerabilityCount;
+    }
 
-    public function setVulnerabilityCount(int $count): self
+    public function setVulnerabilityCount(?int $count): self
     {
         $this->vulnerabilityCount = $count;
         return $this;
     }
 
-    public function getVulnerabilityCount(): int
+    public function getDebrickedUploadId(): ?string
     {
-        return $this->vulnerabilityCount;
+        return $this->debrickedUploadId;
+    }
+
+    public function setDebrickedUploadId(?string $debrickedUploadId): self
+    {
+        $this->debrickedUploadId = $debrickedUploadId;
+        return $this;
+    }
+
+    public function getRepositoryId(): ?string
+    {
+        return $this->repositoryId;
+    }
+
+    public function setRepositoryId(?string $repositoryId): self
+    {
+        $this->repositoryId = $repositoryId;
+        return $this;
+    }
+
+    public function getCommitId(): ?string
+    {
+        return $this->commitId;
+    }
+
+    public function setCommitId(?string $commitId): self
+    {
+        $this->commitId = $commitId;
+        return $this;
     }
 }

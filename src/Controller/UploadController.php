@@ -30,6 +30,11 @@ class UploadController extends AbstractController
         $extension = $mimeTypes->getExtensions($uploadedFile->getMimeType())[0] ?? $uploadedFile->getClientOriginalExtension();
         $newFilename = $safeFilename.'.'.$extension;
 
+        $allowedExtensions = $this->getAllowedExtensions($newFilename);
+        if (!in_array($extension, $allowedExtensions)) {
+            return $this->json(['error' => 'File type not allowed'], Response::HTTP_BAD_REQUEST);
+        }
+
         try {
             $uploadedFile->move(
                 $this->getParameter('uploads_directory'),
@@ -76,5 +81,23 @@ class UploadController extends AbstractController
 
         // Return the slugified string
         return $text;
+    }
+
+    private function getAllowedExtensions(string $newFilename): array
+    {
+        $jsonData = file_get_contents(__DIR__ . '/../../config/allowed_extensions.json');
+        $data = json_decode($jsonData, true);
+        $allowedExtensions = [];
+
+        foreach ($data as $item) {
+            if (!empty($item['regex'])) {
+                $regex = '/' . str_replace('/', '\\/', $item['regex']) . '/';
+                if (preg_match($regex, $newFilename)) {
+                    $allowedExtensions[] = pathinfo($newFilename, PATHINFO_EXTENSION);
+                }
+            }
+        }
+
+        return $allowedExtensions;
     }
 }

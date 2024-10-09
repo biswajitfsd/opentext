@@ -26,3 +26,15 @@ and running before, or the command will fail) in root folder.
 
 We recommend that you always use the PHP container's shell whenever you execute PHP, such as when installing and 
 requiring new composer dependencies.
+
+## Automatic User Notification on Scan Completion
+
+When the scan has been completed, you should automatically notify the user based on a set of pre-defined rules. This is achieved by running a Symfony Command in the background inside the Docker container. The rules consist of triggers and actions that result from those triggers. The triggers could include:
+
+- **File Upload Completion:** Notify when a file upload is successfully completed.
+- **Scan Result Availability:** Notify when the results of a scan are available.
+- **Error Detection:** Notify if an error occurs during the scanning process.
+
+These rules are hard-coded into the application and are designed to ensure users are informed of important events in a timely manner.
+
+To execute the Symfony Command for checking scan status, use the following command:

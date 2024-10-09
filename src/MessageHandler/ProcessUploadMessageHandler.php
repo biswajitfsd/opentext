@@ -61,19 +61,12 @@ class ProcessUploadMessageHandler implements MessageHandlerInterface
             list($repositoryId, $commitId) = $this->debrickedApiClient->startScan($debrickedUploadId);
 
             $upload->setStatus('scanning');
+            $upload->setDebrickedUploadId($debrickedUploadId);
+            $upload->setRepositoryId($repositoryId);
+            $upload->setCommitId($commitId);
             $this->entityManager->flush();
 
-            while (!$this->debrickedApiClient->isScanComplete($debrickedUploadId)) {
-                sleep(3);
-            }
-
-            $scanResults = $this->debrickedApiClient->getScanResults($repositoryId, $commitId);
-
-            $upload->setStatus('completed');
-            $upload->setVulnerabilityCount($scanResults['vulnerabilityCount'] ?? 0);
-            $this->entityManager->flush();
-
-            $this->ruleEngine->evaluate($upload);
+            // No need to wait for scan completion here
         } catch (\Exception $e) {
             $upload->setStatus('failed');
             $this->entityManager->flush();

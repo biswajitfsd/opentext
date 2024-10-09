@@ -15,14 +15,13 @@ class RuleEngine
     private $rules = [];
 
     public function __construct(
-        MailerInterface     $mailer,
+        MailerInterface $mailer,
         HttpClientInterface $httpClient,
-        string              $slackWebhookUrl
-    )
-    {
+        string $slackDsn
+    ) {
         $this->mailer = $mailer;
         $this->httpClient = $httpClient;
-        $this->slackWebhookUrl = $slackWebhookUrl;
+        $this->slackWebhookUrl = $slackDsn;
         $this->setupRules();
     }
 
@@ -54,6 +53,15 @@ class RuleEngine
                 $this->notifyScanFailed($upload);
             }
         );
+
+        $this->addRule(
+            function (Upload $upload) {
+                return $upload->getStatus() === 'completed';
+            },
+            function (Upload $upload) {
+                $this->notifyScanCompleted($upload);
+            }
+        );
     }
 
     public function addRule(callable $condition, callable $action): void
@@ -73,50 +81,46 @@ class RuleEngine
     private function notifyHighVulnerabilities(Upload $upload): void
     {
         $message = 'High Vulnerability Alert: Upload ' . $upload->getId() . ' has ' . $upload->getVulnerabilityCount() . ' vulnerabilities.';
-
-        // Send Slack notification
-        $this->sendSlackNotification($message);
-
-        // Send email notification
-        $email = (new Email())
-            ->from('noreply@example.com')
-            ->to('biswajit1305@gmail.com')
-            ->subject('High Vulnerability Alert')
-            ->text($message);
-
-        $this->mailer->send($email);
+        $this->sendNotification('High Vulnerability Alert', $message);
     }
 
     private function notifyScanInProgress(Upload $upload): void
     {
         $message = 'Scan In Progress: Scan for upload ' . $upload->getId() . ' is currently in progress.';
-
-        $this->sendSlackNotification($message);
-
-        // Send email notification
-        $email = (new Email())
-            ->from('noreply@example.com')
-            ->to('biswajit1305@gmail.com')
-            ->subject('Scan In Progress')
-            ->text($message);
-
-        $this->mailer->send($email);
+        $this->sendNotification('Scan In Progress', $message);
     }
 
     private function notifyScanFailed(Upload $upload): void
     {
         $message = 'Scan Failed: Scan for upload ' . $upload->getId() . ' has failed.';
+        $this->sendNotification('Scan Failed', $message);
+    }
 
+    private function notifyScanCompleted(Upload $upload): void
+    {
+        $message = 'Scan Completed: Scan for upload ' . $upload->getId() . ' has completed. Vulnerability count: ' . $upload->getVulnerabilityCount();
+        $this->sendNotification('Scan Completed', $message);
+    }
+
+    private function sendNotification(string $subject, string $message): void
+    {
+        $this->sendEmailNotification($subject, $message);
         $this->sendSlackNotification($message);
+    }
 
-        // Send email notification
+    private function sendEmailNotification(string $subject, string $message): void
+    {
         $email = (new Email())
             ->from('noreply@example.com')
             ->to('biswajit1305@gmail.com')
-            ->subject('Scan Failed')
+            ->subject($subject)
             ->text($message);
 
-        $this->mailer->send($email);
+        try {
+            $this->mailer->send($email);
+        } catch (\Exception $e) {
+            error_log('Failed to send email notification: ' . $e->getMessage());
+        }
     }
 
     private function sendSlackNotification(string $message): void
@@ -130,7 +134,6 @@ class RuleEngine
                 throw new \Exception('Slack API returned non-200 status code: ' . $response->getStatusCode());
             }
         } catch (\Exception $e) {
-            // Log the error or handle it appropriately
             error_log('Failed to send Slack notification: ' . $e->getMessage());
         }
     }
