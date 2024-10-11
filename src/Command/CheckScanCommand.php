@@ -18,11 +18,11 @@ use Psr\Log\LoggerInterface;
 )]
 class CheckScanCommand extends Command
 {
-    private $uploadRepository;
-    private $debrickedApiClient;
-    private $ruleEngine;
-    private $entityManager;
-    private $logger;
+    private UploadRepository $uploadRepository;
+    private DebrickedApiClient $debrickedApiClient;
+    private RuleEngine $ruleEngine;
+    private EntityManagerInterface $entityManager;
+    private LoggerInterface $logger;
 
     public function __construct(
         UploadRepository $uploadRepository,
@@ -51,6 +51,7 @@ class CheckScanCommand extends Command
                 $this->logger->info('Checking upload: ' . $upload->getId());
 
                 try {
+                    $this->ruleEngine->evaluate($upload);
                     if ($this->debrickedApiClient->isScanComplete($upload->getDebrickedUploadId())) {
                         $scanResults = $this->debrickedApiClient->getScanResults($upload->getRepositoryId(), $upload->getCommitId());
 
@@ -62,6 +63,8 @@ class CheckScanCommand extends Command
                         $this->logger->info('Scan completed for upload: ' . $upload->getId());
                     }
                 } catch (\Exception $e) {
+                    $upload->setStatus('failed');
+                    $this->ruleEngine->evaluate($upload);
                     $this->logger->error('Error processing upload ' . $upload->getId() . ': ' . $e->getMessage());
                 }
             }

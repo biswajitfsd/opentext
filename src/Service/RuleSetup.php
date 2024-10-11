@@ -6,14 +6,14 @@ use App\Entity\Upload;
 
 class RuleSetup
 {
-    private $ruleEngine;
+    private RuleEngine $ruleEngine;
 
     public function __construct(RuleEngine $ruleEngine)
     {
         $this->ruleEngine = $ruleEngine;
     }
 
-    public function setupRules()
+    public function setupRules(): void
     {
         $this->ruleEngine->addRule(
             function (Upload $upload) {
