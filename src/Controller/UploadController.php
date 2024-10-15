@@ -3,20 +3,18 @@
 namespace App\Controller;
 
 use App\Entity\Upload;
-use App\Message\ProcessUploadMessage;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\Exception\FileException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Mime\MimeTypes;
 
 class UploadController extends AbstractController
 {
     #[Route('/api/upload', name: 'api_upload', methods: ['POST'])]
-    public function upload(Request $request, EntityManagerInterface $em, MessageBusInterface $messageBus): Response
+    public function upload(Request $request, EntityManagerInterface $em): Response
     {
         $uploadedFile = $request->files->get('file');
 
@@ -50,8 +48,6 @@ class UploadController extends AbstractController
 
         $em->persist($upload);
         $em->flush();
-
-        $messageBus->dispatch(new ProcessUploadMessage($upload->getId()));
 
         return $this->json([
             'message' => 'File uploaded successfully',
