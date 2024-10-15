@@ -34,3 +34,7 @@ services:
             $mailer: '@mailer'
             $httpClient: '@http_client'
             $slackDsn: '%env(SLACK_DSN)%'
+
+    App\Service\FileUploadService:
+        arguments:
+            $uploadDirectory: '%uploads_directory%'
