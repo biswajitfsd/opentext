@@ -80,6 +80,7 @@ class FileUploadService
 
         foreach ($data as $item) {
             if (!empty($item['lockFileRegexes'])) {
+                if (!empty($item['regex'])) $item['lockFileRegexes'][] = $item['regex'];
                 foreach ($item['lockFileRegexes'] as $regex_str) {
                     $regex = '/' . str_replace('/', '\\/', $regex_str) . '/';
                     if (preg_match($regex, $newFilename)) {
