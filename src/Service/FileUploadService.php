@@ -10,10 +10,10 @@ use Symfony\Component\Mime\MimeTypes;
 
 class FileUploadService
 {
-    private string $uploadDirectory;
-    private EntityManagerInterface $entityManager;
+//    private string $uploadDirectory;
+//    private EntityManagerInterface $entityManager;
 
-    public function __construct(string $uploadDirectory, EntityManagerInterface $entityManager)
+    public function __construct(private string $uploadDirectory, private EntityManagerInterface $entityManager)
     {
         $this->uploadDirectory = $uploadDirectory;
         $this->entityManager = $entityManager;
@@ -23,8 +23,15 @@ class FileUploadService
     {
         $originalFilename = pathinfo($uploadedFile->getClientOriginalName(), PATHINFO_FILENAME);
         $safeFilename = $this->slugify($originalFilename);
+        $originalExtension = $uploadedFile->getClientOriginalExtension();
         $mimeTypes = new MimeTypes();
-        $extension = $mimeTypes->getExtensions($uploadedFile->getMimeType())[0] ?? $uploadedFile->getClientOriginalExtension();
+        $detectedExtensions = $mimeTypes->getExtensions($uploadedFile->getMimeType());
+        if (!empty($originalExtension) && (empty($detectedExtensions) || in_array(strtolower($originalExtension), ['lock', 'json', 'md', 'yml', 'yaml']))) {
+            $extension = $originalExtension;
+        } else {
+            $extension = $detectedExtensions[0] ?? $originalExtension;
+        }
+
         $newFilename = $safeFilename . '.' . $extension;
 
         $allowedExtensions = $this->getAllowedExtensions($newFilename);
@@ -72,10 +79,12 @@ class FileUploadService
         $allowedExtensions = [];
 
         foreach ($data as $item) {
-            if (!empty($item['regex'])) {
-                $regex = '/' . str_replace('/', '\\/', $item['regex']) . '/';
-                if (preg_match($regex, $newFilename)) {
-                    $allowedExtensions[] = pathinfo($newFilename, PATHINFO_EXTENSION);
+            if (!empty($item['lockFileRegexes'])) {
+                foreach ($item['lockFileRegexes'] as $regex_str) {
+                    $regex = '/' . str_replace('/', '\\/', $regex_str) . '/';
+                    if (preg_match($regex, $newFilename)) {
+                        $allowedExtensions[] = pathinfo($newFilename, PATHINFO_EXTENSION);
+                    }
                 }
             }
         }
